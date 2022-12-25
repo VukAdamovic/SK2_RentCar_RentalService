@@ -71,6 +71,8 @@ public class CompanyServiceImpl implements CompanyService {
         company.setNumOfCars(companyDto.getNumOfCars());
         company.setCity(companyDto.getCity());
 
+        companyRepository.save(company);
+
         return companyMapper.companyToCompanyDto(company);
     }
 }

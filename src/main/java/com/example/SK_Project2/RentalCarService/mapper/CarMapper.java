@@ -43,18 +43,20 @@ public class CarMapper {
         Car car = new Car();
 
         //setModel
-        Model model = modelRepository.findById(carCreateDto.getModelId())
+        Model model = modelRepository.findModelById(carCreateDto.getModelId())
                 .orElseThrow(() -> new NotFoundException(String.format("Model with id: %d does not exists.", carCreateDto.getModelId())));
         car.setModel(model);
 
         //setType
-        Type type = typeRepository.findById(carCreateDto.getTypeId())
+        Type type = typeRepository.findTypeById(carCreateDto.getTypeId())
                 .orElseThrow(() -> new NotFoundException(String.format("Type with id: %d does not exists.", carCreateDto.getTypeId())));
         car.setType(type);
 
         //setCompany
-        Company company = companyRepository.findById(carCreateDto.getCompanyId())
+        Company company = companyRepository.findCompanyById(carCreateDto.getCompanyId())
                 .orElseThrow(() -> new NotFoundException(String.format("Company with id: %d does not exists.", carCreateDto.getCompanyId())));
+
+        car.setCompany(company);
 
         car.setRentalDayPrice(carCreateDto.getRentalDayPrice());
         car.setReserved(false);

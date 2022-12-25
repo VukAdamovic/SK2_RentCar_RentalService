@@ -11,4 +11,6 @@ public interface ModelRepository extends JpaRepository<Model,Long> {
 
     Optional<Model> findModelByName(String name);
 
+    Optional<Model> findModelById(Long id);
+
 }

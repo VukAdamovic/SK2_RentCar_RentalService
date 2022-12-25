@@ -52,6 +52,7 @@ public class CarServiceImpl implements CarService {
 
         carRepository.save(car);
 
+
         return carMapper.carToCarDto(car);
     }
 
@@ -91,6 +92,8 @@ public class CarServiceImpl implements CarService {
         car.setReserved(car.isReserved());
         car.setStartDate(car.getStartDate());
         car.setEndDate(car.getEndDate());
+
+        carRepository.save(car);
 
         return carMapper.carToCarDto(car);
 
