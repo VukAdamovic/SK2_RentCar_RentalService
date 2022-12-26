@@ -6,8 +6,6 @@ import java.util.Date;
 public class ReservationCreateDto {
 
     @NotBlank
-    private Long userId;
-    @NotBlank
     private Long carId;
     @NotBlank
     private Date startDate;
@@ -17,13 +15,6 @@ public class ReservationCreateDto {
     public ReservationCreateDto() {
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 
     public Long getCarId() {
         return carId;
