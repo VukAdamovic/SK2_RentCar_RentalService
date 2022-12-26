@@ -7,5 +7,5 @@ public interface ReservationService {
 
     ReservationDto addReservation(String authorization,ReservationCreateDto reservationCreateDto);
 
-    Boolean cancleReservation(String authorization, Long id);
+    Boolean canceleReservation(String authorization, Long id);
 }

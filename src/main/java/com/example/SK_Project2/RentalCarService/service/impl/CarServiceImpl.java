@@ -6,7 +6,9 @@ import com.example.SK_Project2.RentalCarService.domain.Model;
 import com.example.SK_Project2.RentalCarService.domain.Type;
 import com.example.SK_Project2.RentalCarService.dto.car.CarCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.car.CarDto;
+import com.example.SK_Project2.RentalCarService.dto.company.CompanyDto;
 import com.example.SK_Project2.RentalCarService.exception.NotFoundException;
+import com.example.SK_Project2.RentalCarService.exception.OperationNotAllowed;
 import com.example.SK_Project2.RentalCarService.mapper.CarMapper;
 import com.example.SK_Project2.RentalCarService.mapper.CompanyMapper;
 import com.example.SK_Project2.RentalCarService.mapper.ModelMapper;
@@ -48,12 +50,20 @@ public class CarServiceImpl implements CarService {
 
     @Override
     public CarDto add(CarCreateDto carCreateDto) {
-        Car car = carMapper.carCreateDtoToCar(carCreateDto);
+        Long companyId = carCreateDto.getCompanyId();
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new NotFoundException(String.format("Company with id: %d does not exists.", companyId)));
+        CompanyDto companyDto = companyMapper.companyToCompanyDto(company);
 
-        carRepository.save(car);
+        if(company.getNumOfCars() >= companyDto.getCarList().size() + 1) {
+            Car car = carMapper.carCreateDtoToCar(carCreateDto);
 
+            carRepository.save(car);
 
-        return carMapper.carToCarDto(car);
+            return carMapper.carToCarDto(car);
+        }
+
+        throw new OperationNotAllowed(String.format("Company contains max number of cars"));
     }
 
     @Override

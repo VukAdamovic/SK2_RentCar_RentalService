@@ -9,17 +9,22 @@ import com.example.SK_Project2.RentalCarService.dto.notifications.SuccessfulRese
 import com.example.SK_Project2.RentalCarService.dto.reservation.ReservationCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.reservation.ReservationDto;
 import com.example.SK_Project2.RentalCarService.exception.NotFoundException;
+import com.example.SK_Project2.RentalCarService.exception.OperationNotAllowed;
 import com.example.SK_Project2.RentalCarService.mapper.ReservationMapper;
 import com.example.SK_Project2.RentalCarService.messageHelper.MessageHelper;
 import com.example.SK_Project2.RentalCarService.repository.CarRepository;
 import com.example.SK_Project2.RentalCarService.repository.ReservationRepository;
 import com.example.SK_Project2.RentalCarService.security.service.TokenService;
 import com.example.SK_Project2.RentalCarService.service.ReservationService;
+import com.example.SK_Project2.RentalCarService.userConfiguration.dto.DiscountDto;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -36,6 +41,7 @@ public class ReservationServiceImpl implements ReservationService {
     private CarRepository carRepository;
     private JmsTemplate jmsTemplate;
     private MessageHelper messageHelper;
+    private RestTemplate userServiceRestTemplate; //za sinhronu
     private String incrementRentCarDestination;
     private String decrementRentCarDestination;
     private String successfulReservationDestination;
@@ -44,7 +50,7 @@ public class ReservationServiceImpl implements ReservationService {
     // jos jedna notifikacija dest
 
 
-    public ReservationServiceImpl(TokenService tokenService, ReservationRepository reservationRepository, ReservationMapper reservationMapper, CarRepository carRepository, JmsTemplate jmsTemplate, MessageHelper messageHelper,
+    public ReservationServiceImpl(TokenService tokenService, ReservationRepository reservationRepository, ReservationMapper reservationMapper, CarRepository carRepository, JmsTemplate jmsTemplate, MessageHelper messageHelper, RestTemplate userServiceRestTemplate,
                                   @Value("${destination.incrementRentCar}")String incrementRentCarDestination, @Value("${destination.decrementRentCar}")String decrementRentCarDestination,
                                   @Value("${destination.successfulReservation}") String successfulReservationDestination,@Value("${destination.canceledReservation}") String canceledReservationDestination) {
         this.tokenService = tokenService;
@@ -53,6 +59,7 @@ public class ReservationServiceImpl implements ReservationService {
         this.carRepository = carRepository;
         this.jmsTemplate = jmsTemplate;
         this.messageHelper = messageHelper;
+        this.userServiceRestTemplate = userServiceRestTemplate;
         this.incrementRentCarDestination = incrementRentCarDestination;
         this.decrementRentCarDestination = decrementRentCarDestination;
         this.successfulReservationDestination = successfulReservationDestination;
@@ -68,7 +75,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         Date now = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
         if(reservationCreateDto.getStartDate().before(now) || reservationCreateDto.getStartDate().after(reservationCreateDto.getEndDate())){
-            return  null; // ako je los ukucan datum
+           throw new OperationNotAllowed(String.format("Check dates!"));
         }
 
         //--------------------------------------------//
@@ -97,7 +104,15 @@ public class ReservationServiceImpl implements ReservationService {
 
             //-------------------------------------------//
 
-            //sinhona komunikacija da nabavim cenu;
+            //sinhona komunikacija, ali sta znaci retry ?
+            ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
+                    HttpMethod.GET,null, DiscountDto.class);
+
+
+            DiscountDto discountDto = discountDtoResponseEntity.getBody();
+
+            Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
+            Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
 
 
             SuccessfulReservationDto successfulReservationDto = new SuccessfulReservationDto();
@@ -106,7 +121,7 @@ public class ReservationServiceImpl implements ReservationService {
             successfulReservationDto.setCar(car.getModel() + " " + car.getType());
             successfulReservationDto.setStartDate(reservation.getStartDate());
             successfulReservationDto.setEndDate(reservation.getEndDate());
-            //successfulReservationDto.setPrice();
+            successfulReservationDto.setPrice(String.valueOf(price));
 
             jmsTemplate.convertAndSend(successfulReservationDestination,messageHelper.createTextMessage(successfulReservationDto));
 
@@ -116,18 +131,22 @@ public class ReservationServiceImpl implements ReservationService {
             return reservationMapper.resevationToReservationDto(reservation);
         }
 
-        return null; // vracam null ako je ne moze da se rezervise
+        throw  new OperationNotAllowed(String.format("Reservation was not successful!"));
+
     }
 
     @Override
-    public Boolean cancleReservation(String authorization, Long id) {
+    public Boolean canceleReservation(String authorization, Long id) {
         Claims claims = tokenService.parseToken(authorization.split(" ")[1]);
         String roleName = claims.get("role",String.class);
         String email = claims.get("email",String.class);
 
+        if (roleName.equals("ROLE_ADMIN")){
+            new OperationNotAllowed(String.format("Role admin can not canc"));
+        }
+
         Reservation reservation = reservationRepository.findById(id).
                 orElseThrow(()->new NotFoundException(String.format("Reservation with id: %d does not exists.",id)));
-
 
 
         Long clientId = reservation.getUserId();
