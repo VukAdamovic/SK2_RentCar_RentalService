@@ -69,7 +69,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ReservationDto addReservation(String authorization, ReservationCreateDto reservationCreateDto) {
         Claims claims = tokenService.parseToken(authorization.split(" ")[1]);
-        Long clientId = claims.get("id",Long.class);
+        Long clientId = claims.get("id",Integer.class).longValue();
         String emailClient = claims.get("email",String.class);
 
 
@@ -80,25 +80,21 @@ public class ReservationServiceImpl implements ReservationService {
 
         //--------------------------------------------//
 
-        Reservation reservation = reservationMapper.reservationCreateDtoToReservation(reservationCreateDto);
-        reservation.setUserId(clientId);
+        Reservation newReservation = reservationMapper.reservationCreateDtoToReservation(reservationCreateDto);
+        newReservation.setUserId(clientId);
+        Car car = newReservation.getCar();
 
-        Car car = carRepository.findById(reservation.getCarId())
-                .orElseThrow(() -> new NotFoundException(String.format("Car with id: %d does not exists.", reservation.getCarId())));
 
-        if(!car.isReserved() || (car.getEndDate().before(reservation.getStartDate()) && now.after(car.getEndDate()))){
+        if(!car.isReserved()){
             car.setReserved(true);
-            car.setStartDate(reservation.getStartDate());
-            car.setEndDate(reservation.getEndDate());
-
             carRepository.save(car);
 
             //--------------------------------------------//
-            Duration diff = Duration.between(reservation.getStartDate().toInstant(), reservation.getEndDate().toInstant());
-            Integer days = Math.toIntExact(diff.toDays()); // reservation.getEndDate().getDay() - reservation.getStartDate().getDay()
+            Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
+            Integer days = Math.toIntExact(diff.toDays());  // + 1 mozda
 
             IncrementRentCarDto incrementRentCarDto = new IncrementRentCarDto();
-            incrementRentCarDto.setId(reservation.getUserId());
+            incrementRentCarDto.setId(newReservation.getUserId());
             incrementRentCarDto.setDays(days);
             jmsTemplate.convertAndSend(incrementRentCarDestination,messageHelper.createTextMessage(incrementRentCarDto));
 
@@ -108,31 +104,97 @@ public class ReservationServiceImpl implements ReservationService {
             ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
                     HttpMethod.GET,null, DiscountDto.class);
 
-
             DiscountDto discountDto = discountDtoResponseEntity.getBody();
 
             Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
             Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
+            System.out.println("Popust:" + discount);
+            System.out.println("Cena sa popustom" + price);
 
+            newReservation.setTotalPrice(price.intValue()); //setuj cenu
+
+
+            //-----------------------------------------------------------------//
+            //asinhrona komunikacija
 
             SuccessfulReservationDto successfulReservationDto = new SuccessfulReservationDto();
 
             successfulReservationDto.setEmail(emailClient);
-            successfulReservationDto.setCar(car.getModel() + " " + car.getType());
-            successfulReservationDto.setStartDate(reservation.getStartDate());
-            successfulReservationDto.setEndDate(reservation.getEndDate());
+            successfulReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
+            successfulReservationDto.setStartDate(newReservation.getStartDate());
+            successfulReservationDto.setEndDate(newReservation.getEndDate());
             successfulReservationDto.setPrice(String.valueOf(price));
 
             jmsTemplate.convertAndSend(successfulReservationDestination,messageHelper.createTextMessage(successfulReservationDto));
 
             //-------------------------------------------//
 
-            reservationRepository.save(reservation);
-            return reservationMapper.resevationToReservationDto(reservation);
+            reservationRepository.save(newReservation);
+            return reservationMapper.resevationToReservationDto(newReservation);
         }
 
-        throw  new OperationNotAllowed(String.format("Reservation was not successful!"));
 
+
+
+        //--------------------------------------------//
+        //AKO VEC postoji rezervacija za taj auto
+
+
+    Reservation oldReservation = reservationRepository.findReservationByCar(car)
+                .orElseThrow(()->new NotFoundException(String.format("Car with id: %d is not reserved",car.getId())));
+
+    if(oldReservation.getEndDate().before(newReservation.getStartDate())){
+
+    }
+
+    if((newReservation.getStartDate().before(oldReservation.getStartDate()) && newReservation.getEndDate().before(oldReservation.getStartDate()))
+        || (newReservation.getStartDate().after(oldReservation.getEndDate()) && newReservation.getEndDate().after(oldReservation.getEndDate()))){
+
+
+        Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
+        Integer days = Math.toIntExact(diff.toDays());  // + 1 mozda
+
+        IncrementRentCarDto incrementRentCarDto = new IncrementRentCarDto();
+        incrementRentCarDto.setId(newReservation.getUserId());
+        incrementRentCarDto.setDays(days);
+        jmsTemplate.convertAndSend(incrementRentCarDestination,messageHelper.createTextMessage(incrementRentCarDto));
+
+        //-------------------------------------------//
+
+        //sinhona komunikacija, ali sta znaci retry ?
+        ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
+                HttpMethod.GET,null, DiscountDto.class);
+
+        DiscountDto discountDto = discountDtoResponseEntity.getBody();
+
+        Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
+        Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
+        System.out.println("Popust:" + discount);
+        System.out.println("Cena sa popustom" + price);
+
+        newReservation.setTotalPrice(price.intValue()); //setuj cenu
+
+
+        //-----------------------------------------------------------------//
+        //asinhrona komunikacija
+
+        SuccessfulReservationDto successfulReservationDto = new SuccessfulReservationDto();
+
+        successfulReservationDto.setEmail(emailClient);
+        successfulReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
+        successfulReservationDto.setStartDate(newReservation.getStartDate());
+        successfulReservationDto.setEndDate(newReservation.getEndDate());
+        successfulReservationDto.setPrice(String.valueOf(price));
+
+        jmsTemplate.convertAndSend(successfulReservationDestination,messageHelper.createTextMessage(successfulReservationDto));
+
+        //-------------------------------------------//
+
+        reservationRepository.save(newReservation);
+        return reservationMapper.resevationToReservationDto(newReservation);
+    }
+
+    throw  new OperationNotAllowed(String.format("Reservation was not successful!"));
     }
 
     @Override
@@ -150,9 +212,7 @@ public class ReservationServiceImpl implements ReservationService {
 
 
         Long clientId = reservation.getUserId();
-        Car car = carRepository.findById(reservation.getCarId())
-                .orElseThrow(() -> new NotFoundException(String.format("Car with id: %d does not exists.", reservation.getCarId())));
-
+        Car car = reservation.getCar();
 
         //--------------------------------------------//
         Duration diff = Duration.between(reservation.getStartDate().toInstant(), reservation.getEndDate().toInstant());
@@ -169,7 +229,7 @@ public class ReservationServiceImpl implements ReservationService {
         CanceledReservationDto canceledReservationDto = new CanceledReservationDto();
 
         canceledReservationDto.setEmail(email);
-        canceledReservationDto.setCar(car.getModel() + " " + car.getType());
+        canceledReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
 
         jmsTemplate.convertAndSend(canceledReservationDestination,messageHelper.createTextMessage(canceledReservationDto));
 
@@ -178,11 +238,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         //Refresujem vrednosti
         reservationRepository.delete(reservation);
-
         car.setReserved(false);
-        car.setStartDate(null);
-        car.setEndDate(null);
-
         carRepository.save(car);
 
         return true;

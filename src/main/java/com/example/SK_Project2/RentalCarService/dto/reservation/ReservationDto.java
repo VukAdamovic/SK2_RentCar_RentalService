@@ -1,11 +1,13 @@
 package com.example.SK_Project2.RentalCarService.dto.reservation;
 
+
 import java.util.Date;
 
 public class ReservationDto {
     private Long id;
     private Long userId;
     private Long carId;
+    private String carName;
     private Date startDate;
     private Date endDate;
     private Integer totalPrice;
@@ -35,6 +37,14 @@ public class ReservationDto {
 
     public void setCarId(Long carId) {
         this.carId = carId;
+    }
+
+    public String getCarName() {
+        return carName;
+    }
+
+    public void setCarName(String carName) {
+        this.carName = carName;
     }
 
     public Date getStartDate() {

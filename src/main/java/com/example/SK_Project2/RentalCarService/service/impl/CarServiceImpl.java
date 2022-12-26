@@ -100,8 +100,6 @@ public class CarServiceImpl implements CarService {
 
         car.setRentalDayPrice(car.getRentalDayPrice());
         car.setReserved(car.isReserved());
-        car.setStartDate(car.getStartDate());
-        car.setEndDate(car.getEndDate());
 
         carRepository.save(car);
 
@@ -132,16 +130,17 @@ public class CarServiceImpl implements CarService {
     //proveri metodu lose objasnjeno u specifikaciji
     @Override
     public List<CarDto> findByCustomParams(String city, String companyName, Date startDate, Date endDate) {
-        List<CarDto> cars = new ArrayList<>();
-
-        carRepository.findAll()
-                .forEach(car -> {
-                    if(!car.isReserved() && (car.getCompany().getCity().equals(city)) && car.getCompany().getName().equals(companyName)
-                            && car.getEndDate().before(startDate) && car.getEndDate().before(endDate)){
-                        cars.add(carMapper.carToCarDto(car));
-                    }
-                });
-        return cars;
+//        List<CarDto> cars = new ArrayList<>();
+//
+//        carRepository.findAll()
+//                .forEach(car -> {
+//                    if(!car.isReserved() && (car.getCompany().getCity().equals(city)) && car.getCompany().getName().equals(companyName)
+//                            && car.getEndDate().before(startDate) && car.getEndDate().before(endDate)){
+//                        cars.add(carMapper.carToCarDto(car));
+//                    }
+//                });
+//        return cars;
+        return null;
     }
 
     //-----------------------------------------------------------//

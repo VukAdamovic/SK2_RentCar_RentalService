@@ -33,8 +33,6 @@ public class CarMapper {
         carDto.setCompanyName(car.getCompany().getName());
         carDto.setRentalDayPrice(car.getRentalDayPrice());
         carDto.setReserved(car.isReserved());
-        carDto.setStartDate(car.getStartDate());
-        carDto.setEndDate(car.getEndDate());
 
         return carDto;
     }
@@ -60,8 +58,6 @@ public class CarMapper {
 
         car.setRentalDayPrice(carCreateDto.getRentalDayPrice());
         car.setReserved(false);
-        car.setStartDate(null);
-        car.setEndDate(null);
 
         return car;
     }

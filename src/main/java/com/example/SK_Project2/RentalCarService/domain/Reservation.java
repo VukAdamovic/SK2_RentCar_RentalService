@@ -1,9 +1,6 @@
 package com.example.SK_Project2.RentalCarService.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.util.Date;
 
 @Entity
@@ -13,7 +10,9 @@ public class Reservation {
     private Long id;
 
     private Long userId;
-    private Long carId;
+    @ManyToOne
+    private Car car;
+
     private Date startDate;
     private Date endDate;
     private Integer totalPrice;
@@ -37,12 +36,12 @@ public class Reservation {
         this.userId = userId;
     }
 
-    public Long getCarId() {
-        return carId;
+    public Car getCar() {
+        return car;
     }
 
-    public void setCarId(Long carId) {
-        this.carId = carId;
+    public void setCar(Car car) {
+        this.car = car;
     }
 
     public Date getStartDate() {
