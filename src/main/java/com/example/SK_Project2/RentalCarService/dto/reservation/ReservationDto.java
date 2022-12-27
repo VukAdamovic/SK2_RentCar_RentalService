@@ -11,6 +11,7 @@ public class ReservationDto {
     private Date startDate;
     private Date endDate;
     private Integer totalPrice;
+    private String email;
 
     public ReservationDto() {
     }
@@ -69,5 +70,13 @@ public class ReservationDto {
 
     public void setTotalPrice(Integer totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

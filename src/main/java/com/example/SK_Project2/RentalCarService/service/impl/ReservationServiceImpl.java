@@ -85,6 +85,8 @@ public class ReservationServiceImpl implements ReservationService {
 
         Reservation newReservation = reservationMapper.reservationCreateDtoToReservation(reservationCreateDto);
         newReservation.setUserId(clientId);
+        newReservation.setEmail(emailClient);
+
         Car car = newReservation.getCar();
 
 
@@ -135,9 +137,6 @@ public class ReservationServiceImpl implements ReservationService {
             reservationRepository.save(newReservation);
             return reservationMapper.resevationToReservationDto(newReservation);
         }
-
-
-
 
         //--------------------------------------------//
         //AKO VEC postoji rezervacija za taj auto
@@ -212,7 +211,7 @@ public class ReservationServiceImpl implements ReservationService {
     public Boolean canceleReservation(String authorization, Long id) {
         Claims claims = tokenService.parseToken(authorization.split(" ")[1]);
         String roleName = claims.get("role",String.class);
-        String email = claims.get("email",String.class);
+        String emailCancel = claims.get("email",String.class);
 
         if (roleName.equals("ROLE_ADMIN")){
             new OperationNotAllowed(String.format("Role admin can not canc"));
@@ -239,10 +238,19 @@ public class ReservationServiceImpl implements ReservationService {
 
         CanceledReservationDto canceledReservationDto = new CanceledReservationDto();
 
-        canceledReservationDto.setEmail(email);
+        canceledReservationDto.setEmail(reservation.getEmail());
         canceledReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
 
         jmsTemplate.convertAndSend(canceledReservationDestination,messageHelper.createTextMessage(canceledReservationDto));
+
+        if(!emailCancel.equals(reservation.getEmail())){ //ako otkazuje manager posalji i njemu mejl
+            CanceledReservationDto canceledReservationDto1 = new CanceledReservationDto();
+
+            canceledReservationDto1.setEmail(emailCancel);
+            canceledReservationDto1.setCar(car.getModel().getName() + " " + car.getType().getName());
+
+            jmsTemplate.convertAndSend(canceledReservationDestination,messageHelper.createTextMessage(canceledReservationDto1));
+        }
 
         //-------------------------------------------//
 

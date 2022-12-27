@@ -30,6 +30,7 @@ public class ReservationMapper {
         reservationDto.setStartDate(reservation.getStartDate());
         reservationDto.setEndDate(reservation.getEndDate());
         reservationDto.setTotalPrice(reservation.getTotalPrice());
+        reservationDto.setEmail(reservation.getEmail());
 
         return  reservationDto;
     }
@@ -46,6 +47,8 @@ public class ReservationMapper {
         reservation.setStartDate(reservationCreateDto.getStartDate());
         reservation.setEndDate(reservationCreateDto.getEndDate());
         reservation.setTotalPrice(0); //setujem cenu svakako posle
+        reservation.setEmail(null); // setuje email prilikom kreiranja rezervacije
+        reservation.setThreeDaysReminder("NOT_SEND");
 
         return  reservation;
     }

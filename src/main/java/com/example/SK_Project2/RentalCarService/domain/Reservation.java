@@ -16,6 +16,8 @@ public class Reservation {
     private Date startDate;
     private Date endDate;
     private Integer totalPrice;
+    private String threeDaysReminder;
+    private String email;
 
     public Reservation() {
     }
@@ -66,5 +68,21 @@ public class Reservation {
 
     public void setTotalPrice(Integer totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public String getThreeDaysReminder() {
+        return threeDaysReminder;
+    }
+
+    public void setThreeDaysReminder(String threeDaysReminder) {
+        this.threeDaysReminder = threeDaysReminder;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
