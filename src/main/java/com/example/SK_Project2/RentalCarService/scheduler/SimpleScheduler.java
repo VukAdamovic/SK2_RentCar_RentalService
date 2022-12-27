@@ -31,7 +31,7 @@ public class SimpleScheduler {
         this.reminderReservationDestination = reminderReservationDestination;
     }
 
-    @Scheduled(fixedDelay = 600000, initialDelay = 1000)
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
     public void reminder(){
         List<Reservation> reservations = new ArrayList<>();
         Date now = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
