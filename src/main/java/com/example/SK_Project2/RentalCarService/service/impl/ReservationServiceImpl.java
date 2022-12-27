@@ -29,7 +29,9 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -92,7 +94,7 @@ public class ReservationServiceImpl implements ReservationService {
 
             //--------------------------------------------//
             Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
-            Integer days = Math.toIntExact(diff.toDays());  // + 1 mozda
+            Integer days = Math.toIntExact(diff.toDays())  + 1;  // + 1 mozda
 
             IncrementRentCarDto incrementRentCarDto = new IncrementRentCarDto();
             incrementRentCarDto.setId(newReservation.getUserId());
@@ -141,59 +143,67 @@ public class ReservationServiceImpl implements ReservationService {
         //AKO VEC postoji rezervacija za taj auto
 
 
-    Reservation oldReservation = reservationRepository.findReservationByCar(car)
-                .orElseThrow(()->new NotFoundException(String.format("Car with id: %d is not reserved",car.getId())));
-
-    if(oldReservation.getEndDate().before(newReservation.getStartDate())){
-
-    }
-
-    if((newReservation.getStartDate().before(oldReservation.getStartDate()) && newReservation.getEndDate().before(oldReservation.getStartDate()))
-        || (newReservation.getStartDate().after(oldReservation.getEndDate()) && newReservation.getEndDate().after(oldReservation.getEndDate()))){
+        List<Reservation> reservations = new ArrayList<>();
+        reservationRepository.findAll().forEach(oldReservation -> {
+            if (oldReservation.getCar().equals(car)) {
+                    reservations.add(oldReservation);
+            }
+        });
 
 
-        Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
-        Integer days = Math.toIntExact(diff.toDays());  // + 1 mozda
-
-        IncrementRentCarDto incrementRentCarDto = new IncrementRentCarDto();
-        incrementRentCarDto.setId(newReservation.getUserId());
-        incrementRentCarDto.setDays(days);
-        jmsTemplate.convertAndSend(incrementRentCarDestination,messageHelper.createTextMessage(incrementRentCarDto));
-
-        //-------------------------------------------//
-
-        //sinhona komunikacija, ali sta znaci retry ?
-        ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
-                HttpMethod.GET,null, DiscountDto.class);
-
-        DiscountDto discountDto = discountDtoResponseEntity.getBody();
-
-        Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
-        Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
-        System.out.println("Popust:" + discount);
-        System.out.println("Cena sa popustom" + price);
-
-        newReservation.setTotalPrice(price.intValue()); //setuj cenu
+        boolean check = true;
+        for(Reservation oldReservation : reservations){
+            if(!((newReservation.getStartDate().before(oldReservation.getStartDate()) && newReservation.getEndDate().before(oldReservation.getStartDate()))
+                    || (newReservation.getStartDate().after(oldReservation.getEndDate()) && newReservation.getEndDate().after(oldReservation.getEndDate())))){
+                check = false;   //ako bilo koja stara rezervacija preklapa novu rezervaciju ne mozes da rezervises
+            }
+        }
 
 
-        //-----------------------------------------------------------------//
-        //asinhrona komunikacija
+        //ako moze da se uklopi nova rezervacija u termine sa starim
+        if(check){
+            Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
+            Integer days = Math.toIntExact(diff.toDays())  + 1;  // + 1 mozda
 
-        SuccessfulReservationDto successfulReservationDto = new SuccessfulReservationDto();
+            IncrementRentCarDto incrementRentCarDto = new IncrementRentCarDto();
+            incrementRentCarDto.setId(newReservation.getUserId());
+            incrementRentCarDto.setDays(days);
+            jmsTemplate.convertAndSend(incrementRentCarDestination,messageHelper.createTextMessage(incrementRentCarDto));
 
-        successfulReservationDto.setEmail(emailClient);
-        successfulReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
-        successfulReservationDto.setStartDate(newReservation.getStartDate());
-        successfulReservationDto.setEndDate(newReservation.getEndDate());
-        successfulReservationDto.setPrice(String.valueOf(price));
+            //-------------------------------------------//
 
-        jmsTemplate.convertAndSend(successfulReservationDestination,messageHelper.createTextMessage(successfulReservationDto));
+            //sinhona komunikacija, ali sta znaci retry ?
+            ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
+                    HttpMethod.GET,null, DiscountDto.class);
 
-        //-------------------------------------------//
+            DiscountDto discountDto = discountDtoResponseEntity.getBody();
 
-        reservationRepository.save(newReservation);
-        return reservationMapper.resevationToReservationDto(newReservation);
-    }
+            Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
+            Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
+            System.out.println("Popust:" + discount);
+            System.out.println("Cena sa popustom" + price);
+
+            newReservation.setTotalPrice(price.intValue()); //setuj cenu
+
+
+            //-----------------------------------------------------------------//
+            //asinhrona komunikacija
+
+            SuccessfulReservationDto successfulReservationDto = new SuccessfulReservationDto();
+
+            successfulReservationDto.setEmail(emailClient);
+            successfulReservationDto.setCar(car.getModel().getName() + " " + car.getType().getName());
+            successfulReservationDto.setStartDate(newReservation.getStartDate());
+            successfulReservationDto.setEndDate(newReservation.getEndDate());
+            successfulReservationDto.setPrice(String.valueOf(price));
+
+            jmsTemplate.convertAndSend(successfulReservationDestination,messageHelper.createTextMessage(successfulReservationDto));
+
+            //-------------------------------------------//
+
+            reservationRepository.save(newReservation);
+            return reservationMapper.resevationToReservationDto(newReservation);
+        }
 
     throw  new OperationNotAllowed(String.format("Reservation was not successful!"));
     }
@@ -217,7 +227,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         //--------------------------------------------//
         Duration diff = Duration.between(reservation.getStartDate().toInstant(), reservation.getEndDate().toInstant());
-        Integer days = Math.toIntExact(diff.toDays()); // reservation.getEndDate().getDay() - reservation.getStartDate().getDay()
+        Integer days = Math.toIntExact(diff.toDays()) + 1; // mozda + 1
 
         DecrementRentCarDto decrementRentCarDto = new DecrementRentCarDto();
         decrementRentCarDto.setId(clientId);
@@ -236,22 +246,23 @@ public class ReservationServiceImpl implements ReservationService {
 
         //-------------------------------------------//
 
-        AtomicBoolean check = new AtomicBoolean(false);
 
-        reservationRepository.findAll()
-                .forEach(reservation1 -> {
-                   if(reservation1.getCar().equals(car)){
-                       check.set(true);
-                   }
-                });
+        reservationRepository.delete(reservation);
+
 
         //Refresujem vrednosti ako nema ni jedne rezervacije za ta kola
-        if(check.get()){
+        List<Reservation> reservations = new ArrayList<>();
+        reservationRepository.findAll().forEach(oldReservation -> {
+            if (oldReservation.getCar().equals(car)) {
+                reservations.add(oldReservation);
+            }
+        });
+
+        if(reservations.isEmpty()){
             car.setReserved(false);
             carRepository.save(car);
         }
 
-        reservationRepository.delete(reservation);
         return true;
     }
 }
