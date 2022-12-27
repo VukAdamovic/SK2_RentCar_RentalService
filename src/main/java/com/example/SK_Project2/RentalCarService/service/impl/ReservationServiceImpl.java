@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @Service
@@ -235,12 +236,22 @@ public class ReservationServiceImpl implements ReservationService {
 
         //-------------------------------------------//
 
+        AtomicBoolean check = new AtomicBoolean(false);
 
-        //Refresujem vrednosti
+        reservationRepository.findAll()
+                .forEach(reservation1 -> {
+                   if(reservation1.getCar().equals(car)){
+                       check.set(true);
+                   }
+                });
+
+        //Refresujem vrednosti ako nema ni jedne rezervacije za ta kola
+        if(check.get()){
+            car.setReserved(false);
+            carRepository.save(car);
+        }
+
         reservationRepository.delete(reservation);
-        car.setReserved(false);
-        carRepository.save(car);
-
         return true;
     }
 }
