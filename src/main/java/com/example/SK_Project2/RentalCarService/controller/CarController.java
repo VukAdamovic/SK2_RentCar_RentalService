@@ -2,6 +2,7 @@ package com.example.SK_Project2.RentalCarService.controller;
 
 import com.example.SK_Project2.RentalCarService.dto.car.CarCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.car.CarDto;
+import com.example.SK_Project2.RentalCarService.dto.car.CarFilterDto;
 import com.example.SK_Project2.RentalCarService.security.CheckSecurity;
 import com.example.SK_Project2.RentalCarService.service.CarService;
 import org.springframework.http.HttpStatus;
@@ -44,12 +45,10 @@ public class CarController {
         return new ResponseEntity<>(carService.sortByDayPriceDESC(),HttpStatus.OK);
     }
 
-//    @GetMapping("/{id}")
-//    @CheckSecurity(roles = {"ROLE_CLIENT"})
-//    public ResponseEntity<List<CarDto>> filter(@RequestHeader("authorization") String authorization,@PathVariable("id") Long id){
-//        //return new ResponseEntity<>(carService.findById(id),HttpStatus.OK);
-//        return null;
-//    }
+    @GetMapping("/search")
+    public ResponseEntity<List<CarDto>> filter(@RequestBody CarFilterDto carFilterDto){
+        return new ResponseEntity<>(carService.findCarFilter(carFilterDto),HttpStatus.OK);
+    }
 
     //---------------------
 

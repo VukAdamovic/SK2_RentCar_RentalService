@@ -2,6 +2,7 @@ package com.example.SK_Project2.RentalCarService.service;
 
 import com.example.SK_Project2.RentalCarService.dto.car.CarCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.car.CarDto;
+import com.example.SK_Project2.RentalCarService.dto.car.CarFilterDto;
 
 import java.util.Date;
 import java.util.List;
@@ -19,7 +20,7 @@ public interface CarService {
 
     CarDto findById(Long id);
 
-    List<CarDto> findByCustomParams(String city,String companyName,Date startDate, Date endDate);
+    List<CarDto> findCarFilter(CarFilterDto carFilterDto);
 
     List<CarDto> sortByDayPriceASC();
 

@@ -1,22 +1,14 @@
 package com.example.SK_Project2.RentalCarService.service.impl;
 
-import com.example.SK_Project2.RentalCarService.domain.Car;
-import com.example.SK_Project2.RentalCarService.domain.Company;
-import com.example.SK_Project2.RentalCarService.domain.Model;
-import com.example.SK_Project2.RentalCarService.domain.Type;
+import com.example.SK_Project2.RentalCarService.domain.*;
 import com.example.SK_Project2.RentalCarService.dto.car.CarCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.car.CarDto;
+import com.example.SK_Project2.RentalCarService.dto.car.CarFilterDto;
 import com.example.SK_Project2.RentalCarService.dto.company.CompanyDto;
 import com.example.SK_Project2.RentalCarService.exception.NotFoundException;
 import com.example.SK_Project2.RentalCarService.exception.OperationNotAllowed;
-import com.example.SK_Project2.RentalCarService.mapper.CarMapper;
-import com.example.SK_Project2.RentalCarService.mapper.CompanyMapper;
-import com.example.SK_Project2.RentalCarService.mapper.ModelMapper;
-import com.example.SK_Project2.RentalCarService.mapper.TypeMapper;
-import com.example.SK_Project2.RentalCarService.repository.CarRepository;
-import com.example.SK_Project2.RentalCarService.repository.CompanyRepository;
-import com.example.SK_Project2.RentalCarService.repository.ModelRepository;
-import com.example.SK_Project2.RentalCarService.repository.TypeRepository;
+import com.example.SK_Project2.RentalCarService.mapper.*;
+import com.example.SK_Project2.RentalCarService.repository.*;
 import com.example.SK_Project2.RentalCarService.service.CarService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +23,21 @@ public class CarServiceImpl implements CarService {
     private TypeRepository typeRepository;
     private CompanyRepository companyRepository;
     private CarRepository carRepository;
+    private ReservationRepository reservationRepository;
+    private ReservationMapper reservationMapper;
     private ModelMapper modelMapper;
     private TypeMapper typeMapper;
     private CompanyMapper companyMapper;
     private CarMapper carMapper;
 
-    public CarServiceImpl(ModelRepository modelRepository, TypeRepository typeRepository, CompanyRepository companyRepository, CarRepository carRepository,
-                          ModelMapper modelMapper, TypeMapper typeMapper, CompanyMapper companyMapper, CarMapper carMapper) {
+    public CarServiceImpl(ModelRepository modelRepository, TypeRepository typeRepository, CompanyRepository companyRepository, CarRepository carRepository, ReservationRepository reservationRepository,
+                          ReservationMapper reservationMapper, ModelMapper modelMapper, TypeMapper typeMapper, CompanyMapper companyMapper, CarMapper carMapper) {
         this.modelRepository = modelRepository;
         this.typeRepository = typeRepository;
         this.companyRepository = companyRepository;
         this.carRepository = carRepository;
+        this.reservationRepository = reservationRepository;
+        this.reservationMapper = reservationMapper;
         this.modelMapper = modelMapper;
         this.typeMapper = typeMapper;
         this.companyMapper = companyMapper;
@@ -126,22 +122,46 @@ public class CarServiceImpl implements CarService {
                 .orElseThrow(() -> new NotFoundException(String.format("Car with id: %d does not exists.", id)));
     }
 
-
-    //proveri metodu lose objasnjeno u specifikaciji
     @Override
-    public List<CarDto> findByCustomParams(String city, String companyName, Date startDate, Date endDate) {
-//        List<CarDto> cars = new ArrayList<>();
-//
-//        carRepository.findAll()
-//                .forEach(car -> {
-//                    if(!car.isReserved() && (car.getCompany().getCity().equals(city)) && car.getCompany().getName().equals(companyName)
-//                            && car.getEndDate().before(startDate) && car.getEndDate().before(endDate)){
-//                        cars.add(carMapper.carToCarDto(car));
-//                    }
-//                });
-//        return cars;
-        return null;
+    public List<CarDto> findCarFilter(CarFilterDto carFilterDto) {
+        List<CarDto> availableCars = new ArrayList<>();
+
+        Company company = companyRepository.findCompanyById(carFilterDto.getCompany_id())
+               .orElseThrow(() -> new NotFoundException(String.format("Company with id: %d does not exists.", carFilterDto.getCompany_id())));
+
+        List<Car> allCars = carRepository.findAll();
+
+        for(Car car : allCars){
+            if(!car.isReserved() && car.getCompany().equals(company) && car.getCompany().getCity().equals(carFilterDto.getCity())){
+                availableCars.add(carMapper.carToCarDto(car));
+                continue;
+            }
+
+            if(car.isReserved() && car.getCompany().equals(company) && car.getCompany().getCity().equals(carFilterDto.getCity())){
+                List<Reservation> allCarReservation = new ArrayList<>();
+
+                reservationRepository.findAll().forEach(reservation -> {
+                    if(reservation.getCar().equals(car))
+                        allCarReservation.add(reservation);
+                });
+
+                boolean check = true;
+               for(Reservation reservation : allCarReservation){
+                   if(!((carFilterDto.getStartDate().before(reservation.getStartDate()) && carFilterDto.getEndDate().before(reservation.getStartDate()))
+                           || (carFilterDto.getStartDate().after(reservation.getEndDate()) && carFilterDto.getEndDate().after(reservation.getEndDate())))){
+                       check = false;
+                   }
+               }
+
+               if(check){
+                   availableCars.add(carMapper.carToCarDto(car));
+               }
+            }
+        }
+
+        return availableCars;
     }
+
 
     //-----------------------------------------------------------//
 

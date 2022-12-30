@@ -8,4 +8,6 @@ public interface ReservationService {
     ReservationDto addReservation(String authorization,ReservationCreateDto reservationCreateDto);
 
     Boolean canceleReservation(String authorization, Long id);
+
+    
 }
