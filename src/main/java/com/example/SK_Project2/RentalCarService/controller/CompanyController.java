@@ -32,6 +32,11 @@ public class CompanyController {
         return new ResponseEntity<>(companyService.findById(id),HttpStatus.OK);
     }
 
+    @GetMapping("/sortCompanies")
+    public ResponseEntity<List<CompanyDto>> sortCompaniesByRate(){
+        return new ResponseEntity<>(companyService.sortCompaniesByReview(),HttpStatus.OK);
+    }
+
     //---------------------
 
     @PostMapping("/registration")

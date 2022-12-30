@@ -17,4 +17,7 @@ public interface CompanyService {
     Boolean delete(Long id);
 
     CompanyDto update(CompanyDto companyDto);
+
+
+    List<CompanyDto> sortCompaniesByReview();
 }

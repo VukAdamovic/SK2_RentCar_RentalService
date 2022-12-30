@@ -1,27 +1,30 @@
 package com.example.SK_Project2.RentalCarService.service.impl;
 
 import com.example.SK_Project2.RentalCarService.domain.Company;
+import com.example.SK_Project2.RentalCarService.domain.Review;
 import com.example.SK_Project2.RentalCarService.dto.company.CompanyCreateDto;
 import com.example.SK_Project2.RentalCarService.dto.company.CompanyDto;
 import com.example.SK_Project2.RentalCarService.exception.NotFoundException;
 import com.example.SK_Project2.RentalCarService.mapper.CompanyMapper;
 import com.example.SK_Project2.RentalCarService.repository.CompanyRepository;
+import com.example.SK_Project2.RentalCarService.repository.ReviewRepository;
 import com.example.SK_Project2.RentalCarService.service.CompanyService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @Transactional
 public class CompanyServiceImpl implements CompanyService {
     private CompanyRepository companyRepository;
     private CompanyMapper companyMapper;
+    private ReviewRepository reviewRepository;
 
-    public CompanyServiceImpl(CompanyRepository companyRepository, CompanyMapper companyMapper) {
+    public CompanyServiceImpl(CompanyRepository companyRepository, CompanyMapper companyMapper, ReviewRepository reviewRepository) {
         this.companyRepository = companyRepository;
         this.companyMapper = companyMapper;
+        this.reviewRepository = reviewRepository;
     }
 
     @Override
@@ -74,5 +77,36 @@ public class CompanyServiceImpl implements CompanyService {
         companyRepository.save(company);
 
         return companyMapper.companyToCompanyDto(company);
+    }
+
+    @Override
+    public List<CompanyDto> sortCompaniesByReview() {
+        List<CompanyDto> companies = new ArrayList<>();
+
+        List<Review> reviews = reviewRepository.findAll();
+        List<Company> allCompanies = companyRepository.findAll();
+
+        Map<Integer,Long> mapa = new HashMap<>();
+        for(Company company : allCompanies){
+            int zbir = 0;
+            int counter = 0;
+            for(Review review : reviews){
+                if(review.getCompany().equals(company)){
+                        zbir = zbir + review.getRate();
+                        counter++;
+                }
+            }
+            mapa.put(zbir/counter,company.getId());
+            zbir = 0;
+            counter = 0;
+        }
+        Map<Integer,Long> treeMap = new TreeMap<>(Collections.reverseOrder());
+        treeMap.putAll(mapa);
+
+       treeMap.forEach((k,v) ->
+        companies.add(companyRepository.findById(v).map(companyMapper::companyToCompanyDto)
+                .orElseThrow(() -> new NotFoundException(String.format("Company with id: %d does not exists.", v)))));
+
+        return  companies;
     }
 }
