@@ -27,7 +27,7 @@ public class ReservationController {
 
     @DeleteMapping("/{id}")
     @CheckSecurity(roles = {"ROLE_CLIENT","ROLE_MANAGER"})
-    public ResponseEntity<Boolean> canceleReservation(@RequestHeader("authorization") String authorization,@PathVariable("id") Long id){
+    public ResponseEntity<Boolean> cancelReservation(@RequestHeader("authorization") String authorization, @PathVariable("id") Long id){
         return new ResponseEntity<>(reservationService.canceleReservation(authorization,id),HttpStatus.OK);
     }
 

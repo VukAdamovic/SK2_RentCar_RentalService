@@ -28,7 +28,7 @@ public class CompanyController {
 
     @GetMapping("/{id}")
     @CheckSecurity(roles = {"ROLE_MANAGER"})
-    public ResponseEntity<CompanyDto> getComapnyById(@RequestHeader("authorization") String authorization,@PathVariable("id") Long id){
+    public ResponseEntity<CompanyDto> getCompanyById(@RequestHeader("authorization") String authorization, @PathVariable("id") Long id){
         return new ResponseEntity<>(companyService.findById(id),HttpStatus.OK);
     }
 
