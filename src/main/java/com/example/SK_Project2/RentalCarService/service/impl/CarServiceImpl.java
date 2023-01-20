@@ -94,8 +94,7 @@ public class CarServiceImpl implements CarService {
 
         car.setCompany(company);
 
-        car.setRentalDayPrice(car.getRentalDayPrice());
-        car.setReserved(car.isReserved());
+        car.setRentalDayPrice(carDto.getRentalDayPrice());
 
         carRepository.save(car);
 

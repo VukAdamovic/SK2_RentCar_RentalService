@@ -33,7 +33,7 @@ public class ReviewController {
         return new ResponseEntity<>(reviewService.findById(id),HttpStatus.OK);
     }
 
-    @GetMapping("/filterReview")
+    @PutMapping("/filterReview")
     @CheckSecurity(roles = {"ROLE_CLIENT"})
     public ResponseEntity<List<ReviewDto>> filterReview(@RequestHeader("authorization") String authorization,@RequestBody ReviewFilterDto reviewFilterDto){
         return new ResponseEntity<>(reviewService.filterReview(reviewFilterDto),HttpStatus.OK);

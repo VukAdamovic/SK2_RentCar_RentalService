@@ -159,7 +159,7 @@ public class ReservationServiceImpl implements ReservationService {
             }
         }
 
-
+        System.out.println("LISTA: " + reservations);
         //ako moze da se uklopi nova rezervacija u termine sa starim
         if(check){
             Duration diff = Duration.between(newReservation.getStartDate().toInstant(), newReservation.getEndDate().toInstant());
@@ -173,12 +173,13 @@ public class ReservationServiceImpl implements ReservationService {
             //-------------------------------------------//
 
             //sinhona komunikacija, ali sta znaci retry ?
-            ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("users/client/" + clientId + "/discount",
+            ResponseEntity<DiscountDto> discountDtoResponseEntity = userServiceRestTemplate.exchange("/users/client/" + clientId + "/discount",
                     HttpMethod.GET,null, DiscountDto.class);
 
             DiscountDto discountDto = discountDtoResponseEntity.getBody();
+            System.out.println("Pre " + discountDto.getDiscount());
 
-            Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() / 100);
+            Double discount = Double.valueOf((days * car.getRentalDayPrice())) * Double.valueOf(discountDto.getDiscount() * 0.01);
             Double price = Double.valueOf((days * car.getRentalDayPrice())) - discount;
             System.out.println("Popust:" + discount);
             System.out.println("Cena sa popustom" + price);

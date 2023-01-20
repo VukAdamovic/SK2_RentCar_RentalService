@@ -32,7 +32,7 @@ public class CarMapper {
         carDto.setTypeName(car.getType().getName());
         carDto.setCompanyName(car.getCompany().getName());
         carDto.setRentalDayPrice(car.getRentalDayPrice());
-        carDto.setReserved(car.isReserved());
+//        carDto.setReserved(car.isReserved());
 
         return carDto;
     }

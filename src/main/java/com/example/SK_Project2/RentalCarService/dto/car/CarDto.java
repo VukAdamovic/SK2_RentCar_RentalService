@@ -9,9 +9,9 @@ public class CarDto {
     private String typeName;
     private String companyName;
     private Integer rentalDayPrice;
-    private boolean reserved;
-    private Date startDate;
-    private Date endDate;
+//    private boolean reserved;
+//    private Date startDate;
+//    private Date endDate;
 
     public CarDto() {
     }
@@ -54,30 +54,6 @@ public class CarDto {
 
     public void setRentalDayPrice(Integer rentalDayPrice) {
         this.rentalDayPrice = rentalDayPrice;
-    }
-
-    public boolean isReserved() {
-        return reserved;
-    }
-
-    public void setReserved(boolean reserved) {
-        this.reserved = reserved;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
     }
 }
 

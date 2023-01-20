@@ -34,18 +34,16 @@ public class CarController {
     }
 
     @GetMapping("/sortASC")
-    @CheckSecurity(roles = {"ROLE_CLIENT"})
-    public ResponseEntity<List<CarDto>> sortASC(@RequestHeader("authorization") String authorization){
+    public ResponseEntity<List<CarDto>> sortASC(){
         return new ResponseEntity<>(carService.sortByDayPriceASC(),HttpStatus.OK);
     }
 
     @GetMapping("/sortDESC")
-    @CheckSecurity(roles = {"ROLE_CLIENT"})
-    public ResponseEntity<List<CarDto>> sortDESC(@RequestHeader("authorization") String authorization){
+    public ResponseEntity<List<CarDto>> sortDESC(){
         return new ResponseEntity<>(carService.sortByDayPriceDESC(),HttpStatus.OK);
     }
 
-    @GetMapping("/search")
+    @PutMapping("/search")
     public ResponseEntity<List<CarDto>> filter(@RequestBody CarFilterDto carFilterDto){
         return new ResponseEntity<>(carService.findCarFilter(carFilterDto),HttpStatus.OK);
     }
